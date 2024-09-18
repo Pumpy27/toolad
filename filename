@@ -1,0 +1,131 @@
+import React, { useState, useCallback, useRef } from 'react';
+import { Check, Heart, Sparkles } from 'lucide-react';
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+const TitleTransformer = () => {
+  const [inputTitle, setInputTitle] = useState('');
+  const [transformedTitle, setTransformedTitle] = useState('');
+  const [copiedTitle, setCopiedTitle] = useState('');
+  const [error, setError] = useState('');
+  const inputTitleRef = useRef(null);
+  const transformedTitleRef = useRef(null);
+
+  const transformTitle = useCallback((title) => {
+    if (typeof title !== 'string') return '';
+    return title
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/'/g, '')
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-');
+  }, []);
+
+  const handleInputChange = useCallback((e) => {
+    const newInput = e.target.value;
+    setInputTitle(newInput);
+    setTransformedTitle(transformTitle(newInput));
+    setError(''); // Clear any previous errors
+  }, [transformTitle]);
+
+  const copyToClipboard = useCallback((title, type) => {
+    if (!title) {
+      setError('No title to copy.');
+      return;
+    }
+    
+    const titleArea = type === 'original' ? inputTitleRef.current : transformedTitleRef.current;
+    if (titleArea) {
+      titleArea.select();
+      try {
+        document.execCommand('copy');
+        setCopiedTitle(type);
+        setTimeout(() => setCopiedTitle(''), 2000);
+        setError('');
+      } catch (err) {
+        console.error('Failed to copy title: ', err);
+        setError('Failed to copy title. Please try again.');
+      }
+      window.getSelection().removeAllRanges(); // Clear selection
+    }
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-pink-200 p-8">
+      <div className="max-w-md mx-auto mt-16 p-6 bg-pink-100 rounded-lg shadow-lg relative">
+        <div className="absolute top-2 right-2 font-bold text-pink-700">Aya's tool</div>
+        <div className="space-y-4">
+          <label className="font-bold flex items-center justify-center text-pink-700">
+            <Heart className="w-4 h-4 text-pink-500 mr-2" />
+            Original Title
+            <Heart className="w-4 h-4 text-pink-500 ml-2" />
+          </label>
+          <Textarea
+            ref={inputTitleRef}
+            placeholder="Enter title to transform..."
+            value={inputTitle}
+            onChange={handleInputChange}
+            className="w-full p-2 border rounded bg-white border-pink-300 focus:border-pink-500 focus:ring focus:ring-pink-200 focus:ring-opacity-50"
+          />
+          <Button 
+            onClick={() => copyToClipboard(inputTitle, 'original')} 
+            className="w-full flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white"
+            disabled={!inputTitle}
+          >
+            {copiedTitle === 'original' ? (
+              <>
+                <Check className="mr-2 h-4 w-4" /> Copied!
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" /> Copy Original Title
+              </>
+            )}
+          </Button>
+        </div>
+        <div className="mt-6 space-y-4">
+          <label className="font-bold flex items-center justify-center text-pink-700">
+            <Heart className="w-4 h-4 text-pink-500 mr-2" />
+            Transformed Title
+            <Heart className="w-4 h-4 text-pink-500 ml-2" />
+          </label>
+          <Textarea
+            ref={transformedTitleRef}
+            value={transformedTitle}
+            readOnly
+            className="w-full p-2 border rounded bg-white border-pink-300"
+          />
+          <Button 
+            onClick={() => copyToClipboard(transformedTitle, 'transformed')} 
+            className="w-full flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white"
+            disabled={!transformedTitle}
+          >
+            {copiedTitle === 'transformed' ? (
+              <>
+                <Check className="mr-2 h-4 w-4" /> Copied!
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" /> Copy Transformed Title
+              </>
+            )}
+          </Button>
+        </div>
+        {error && (
+          <Alert className="mt-4 bg-red-100 border-red-400 text-red-800">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {copiedTitle && !error && (
+          <Alert className="mt-4 bg-green-100 border-green-400 text-green-800">
+            <AlertDescription>{copiedTitle === 'original' ? 'Original' : 'Transformed'} title copied to clipboard!</AlertDescription>
+          </Alert>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TitleTransformer;
